@@ -128,21 +128,108 @@ oracion(negativo)   --> sintagma_verbal_neg, complemento.
 %  PARSER
 % ============================================================
 
-% atomizar(+Texto, -Tokens)
-% Convierte el texto del usuario a lista de atomos en minuscula.
-% Elimina signos de puntuacion y espacios extra.
 atomizar(Texto, Tokens) :-
     string_lower(Texto, Lower),
     split_string(Lower, " ,!?.;:()", " ", Partes),
     exclude([P]>>(P = ""), Partes, Limpias),
     maplist([S, A]>>(atom_string(A, S)), Limpias, Tokens).
 
-% parsear(+Texto, -Intencion)
-% Aplica la gramatica DCG al texto del usuario.
-% Intencion unifica con: afirmativo | negativo | desconocido
 parsear(Texto, Intencion) :-
     atomizar(Texto, Tokens),
     (   once(phrase(oracion(I), Tokens))
     ->  Intencion = I
     ;   Intencion = desconocido
+    ).
+
+% ============================================================
+%  PREGUNTAS
+%
+%  Estructura: pregunta(TextoPregunta, RasgosAfirm, RasgosNeg)
+%
+%  RasgosAfirm: atomos de BD.pl a agregar si la respuesta
+%               es afirmativa (afinidades de la carrera).
+%  RasgosNeg:   atomos de BD.pl a agregar si la respuesta
+%               es negativa (antagonias de la carrera).
+% ============================================================
+preguntas([
+    pregunta('Te gustan las matematicas y la logica?',
+             [matematicas, logica],
+             [rechazo_matematicas]),
+
+    pregunta('Te gusta la tecnologia y la programacion?',
+             [tecnologia, programacion],
+             [rechazo_tecnologia]),
+
+    pregunta('Te gusta resolver problemas complejos?',
+             [resolver_problemas],
+             [no_resuelve_problemas]),
+
+    pregunta('Te interesa trabajar con personas?',
+             [personas],
+             [rechazo_personas]),
+
+    pregunta('Te gusta la ciencia y la biologia?',
+             [ciencia, biologia, salud],
+             [desinteres_ciencia]),
+
+    pregunta('Te gustan los animales y su cuidado?',
+             [animales, cuidado, responsabilidad],
+             [rechazo_animales]),
+
+    pregunta('Te gusta leer, escribir y debatir ideas?',
+             [lectura, escritura, argumentacion, debate],
+             [rechazo_lectura, rechazo_debate]),
+
+    pregunta('Te atrae el liderazgo y los negocios?',
+             [liderazgo, negocios, estrategia, organizacion],
+             [rechazo_liderazgo, desinteres_negocios]),
+
+    pregunta('Te gusta el dibujo, el diseno y la creatividad?',
+             [dibujo, diseno, creatividad, espacios],
+             [rechazo_dibujo, poca_creatividad]),
+
+    pregunta('Te gusta viajar y conocer otras culturas?',
+             [viajar, cultura, idiomas],
+             [rechazo_viajar]),
+
+    pregunta('Te gustan los numeros y las finanzas?',
+             [numeros, finanzas, orden, detalle],
+             [rechazo_numeros, desinteres_finanzas]),
+
+    pregunta('Te gusta comunicarte y escuchar a los demas?',
+             [comunicacion, escuchar, empatia],
+             [poca_comunicacion, poca_empatia])
+]).
+
+% ============================================================
+%  LECTURA DE ENTRADA
+% ============================================================
+
+% leer_entrada(-Texto)
+% Lee una linea completa desde la entrada estandar.
+leer_entrada(Texto) :-
+    write('Usuario: '),
+    read_line_to_string(user_input, Texto).
+
+% leer_con_reintento(-Intencion)
+% Parsea la respuesta del usuario. Si es de una sola palabra
+% o no se reconoce, pide que repita con oracion completa.
+leer_con_reintento(Intencion) :-
+    leer_entrada(Texto),
+    atomizar(Texto, Tokens),
+    length(Tokens, L),
+    (   L < 2
+    ->  nl,
+        writeln('OrientadorCE: El sistema no acepta si/no directamente.'),
+        writeln('              Por favor responde con una oracion completa.'),
+        nl,
+        leer_con_reintento(Intencion)
+    ;   parsear(Texto, I),
+        (   I = desconocido
+        ->  nl,
+            writeln('OrientadorCE: Me puedes repetir, no entendi.'),
+            nl,
+            leer_con_reintento(Intencion)
+        ;   Intencion = I
+        )
     ).
