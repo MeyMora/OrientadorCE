@@ -27,17 +27,14 @@
 %  LEXICO - Terminales de la gramatica
 % ============================================================
 
-% --- Saludos ---
 saludo --> [hola].
 saludo --> [buenas].
 saludo --> [hey].
 saludo --> [saludos].
 
-% --- Pronombres personales ---
 pronombre --> [yo].
 pronombre --> [mi].
 
-% --- Articulos ---
 articulo --> [el].
 articulo --> [la].
 articulo --> [los].
@@ -45,7 +42,6 @@ articulo --> [las].
 articulo --> [un].
 articulo --> [una].
 
-% --- Adverbios de afirmacion directa ---
 adv_afirmativo --> [claro].
 adv_afirmativo --> [correcto].
 adv_afirmativo --> [exacto].
@@ -55,7 +51,6 @@ adv_afirmativo --> [por, supuesto].
 adv_afirmativo --> [mucho].
 adv_afirmativo --> [bastante].
 
-% --- Adverbios de negacion directa ---
 adv_negativo --> [no].
 adv_negativo --> [nunca].
 adv_negativo --> [jamas].
@@ -64,19 +59,16 @@ adv_negativo --> [para, nada].
 adv_negativo --> [poco].
 adv_negativo --> [en, absoluto].
 
-% --- Marcador de negacion preverbal ---
 negacion --> [no].
 negacion --> [nunca].
 negacion --> [jamas].
 
-% --- Clitico: pronombre atono, puede ser vacio (epsilon) ---
 clitico --> [me].
 clitico --> [te].
 clitico --> [le].
 clitico --> [se].
 clitico --> [].
 
-% --- Verbos con intencion afirmativa ---
 verbo_afirmativo --> [amo].
 verbo_afirmativo --> [adoro].
 verbo_afirmativo --> [encanta].
@@ -93,7 +85,6 @@ verbo_afirmativo --> [prefiero].
 verbo_afirmativo --> [llama].
 verbo_afirmativo --> [habil].
 
-% --- Verbos con intencion negativa ---
 verbo_negativo --> [odio].
 verbo_negativo --> [detesto].
 verbo_negativo --> [aborrezco].
@@ -109,34 +100,20 @@ verbo_negativo --> [puedo].
 %  GRAMATICA DCG - No terminales
 % ============================================================
 
-% --- Sintagma Nominal ---
 sintagma_nominal --> pronombre.
 sintagma_nominal --> pronombre, articulo.
 sintagma_nominal --> articulo.
 
-% --- Sintagma Verbal Positivo ---
 sintagma_verbal_pos --> clitico, verbo_afirmativo.
 
-% --- Sintagma Verbal Negativo ---
 sintagma_verbal_neg --> clitico, verbo_negativo.
 sintagma_verbal_neg --> negacion, clitico, verbo_afirmativo.
 
-% --- Complemento: absorbe el resto de la oracion ---
 complemento --> [].
 complemento --> [_], complemento.
 
 % ============================================================
-%  REGLA RAIZ DE LA GRAMATICA
-%
-%  BNF completo de la oracion:
-%
-%  <oracion> ::= <saludo> <complemento>
-%              | <adv_afirmativo> <complemento>
-%              | <adv_negativo> <complemento>
-%              | <sintagma_nominal> <sintagma_verbal_pos> <complemento>
-%              | <sintagma_nominal> <sintagma_verbal_neg> <complemento>
-%              | <sintagma_verbal_pos> <complemento>
-%              | <sintagma_verbal_neg> <complemento>
+%  REGLA RAIZ
 % ============================================================
 
 oracion(afirmativo) --> saludo,             complemento.
@@ -146,3 +123,26 @@ oracion(afirmativo) --> sintagma_nominal, sintagma_verbal_pos, complemento.
 oracion(negativo)   --> sintagma_nominal, sintagma_verbal_neg, complemento.
 oracion(afirmativo) --> sintagma_verbal_pos, complemento.
 oracion(negativo)   --> sintagma_verbal_neg, complemento.
+
+% ============================================================
+%  PARSER
+% ============================================================
+
+% atomizar(+Texto, -Tokens)
+% Convierte el texto del usuario a lista de atomos en minuscula.
+% Elimina signos de puntuacion y espacios extra.
+atomizar(Texto, Tokens) :-
+    string_lower(Texto, Lower),
+    split_string(Lower, " ,!?.;:()", " ", Partes),
+    exclude([P]>>(P = ""), Partes, Limpias),
+    maplist([S, A]>>(atom_string(A, S)), Limpias, Tokens).
+
+% parsear(+Texto, -Intencion)
+% Aplica la gramatica DCG al texto del usuario.
+% Intencion unifica con: afirmativo | negativo | desconocido
+parsear(Texto, Intencion) :-
+    atomizar(Texto, Tokens),
+    (   once(phrase(oracion(I), Tokens))
+    ->  Intencion = I
+    ;   Intencion = desconocido
+    ).
