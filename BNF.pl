@@ -46,7 +46,6 @@ articulo --> [un].
 articulo --> [una].
 
 % --- Adverbios de afirmacion directa ---
-% Cubren casos como "claro que si", "por supuesto", "mucho"
 adv_afirmativo --> [claro].
 adv_afirmativo --> [correcto].
 adv_afirmativo --> [exacto].
@@ -57,7 +56,6 @@ adv_afirmativo --> [mucho].
 adv_afirmativo --> [bastante].
 
 % --- Adverbios de negacion directa ---
-% Cubren casos como "no mucho", "para nada", "nunca"
 adv_negativo --> [no].
 adv_negativo --> [nunca].
 adv_negativo --> [jamas].
@@ -67,7 +65,43 @@ adv_negativo --> [poco].
 adv_negativo --> [en, absoluto].
 
 % --- Marcador de negacion preverbal ---
-% Se usa para construir sv_neg: "no me gusta", "nunca podria"
 negacion --> [no].
 negacion --> [nunca].
 negacion --> [jamas].
+
+% --- Clitico: pronombre atono, puede ser vacio (epsilon) ---
+% Permite reconocer: "me gusta", "te encanta", o solo "gusta"
+clitico --> [me].
+clitico --> [te].
+clitico --> [le].
+clitico --> [se].
+clitico --> [].
+
+% --- Verbos con intencion afirmativa ---
+verbo_afirmativo --> [amo].
+verbo_afirmativo --> [adoro].
+verbo_afirmativo --> [encanta].
+verbo_afirmativo --> [encantan].
+verbo_afirmativo --> [gusta].
+verbo_afirmativo --> [gustan].
+verbo_afirmativo --> [disfruto].
+verbo_afirmativo --> [intereso].
+verbo_afirmativo --> [interesa].
+verbo_afirmativo --> [interesan].
+verbo_afirmativo --> [apasiona].
+verbo_afirmativo --> [fascina].
+verbo_afirmativo --> [prefiero].
+verbo_afirmativo --> [llama].
+verbo_afirmativo --> [habil].
+
+% --- Verbos con intencion negativa ---
+verbo_negativo --> [odio].
+verbo_negativo --> [detesto].
+verbo_negativo --> [aborrezco].
+verbo_negativo --> [molesta].
+verbo_negativo --> [molestan].
+verbo_negativo --> [aburre].
+verbo_negativo --> [aburren].
+verbo_negativo --> [soporto].    % "no soporto"
+verbo_negativo --> [podria].     % "no podria imaginarme..."
+verbo_negativo --> [puedo].      % "no puedo con..."
