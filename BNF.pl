@@ -70,7 +70,6 @@ negacion --> [nunca].
 negacion --> [jamas].
 
 % --- Clitico: pronombre atono, puede ser vacio (epsilon) ---
-% Permite reconocer: "me gusta", "te encanta", o solo "gusta"
 clitico --> [me].
 clitico --> [te].
 clitico --> [le].
@@ -102,6 +101,40 @@ verbo_negativo --> [molesta].
 verbo_negativo --> [molestan].
 verbo_negativo --> [aburre].
 verbo_negativo --> [aburren].
-verbo_negativo --> [soporto].    % "no soporto"
-verbo_negativo --> [podria].     % "no podria imaginarme..."
-verbo_negativo --> [puedo].      % "no puedo con..."
+verbo_negativo --> [soporto].
+verbo_negativo --> [podria].
+verbo_negativo --> [puedo].
+
+% ============================================================
+%  GRAMATICA DCG - No terminales
+%
+%  BNF de los sintagmas:
+%
+%  <sintagma_nominal>   ::= <pronombre>
+%                         | <pronombre> <articulo>
+%                         | <articulo>
+%
+%  <sintagma_verbal_pos> ::= <clitico> <verbo_afirmativo>
+%
+%  <sintagma_verbal_neg> ::= <clitico> <verbo_negativo>
+%                          | <negacion> <clitico> <verbo_afirmativo>
+%
+%  <complemento>        ::= epsilon
+%                         | <palabra> <complemento>
+% ============================================================
+
+% --- Sintagma Nominal ---
+sintagma_nominal --> pronombre.
+sintagma_nominal --> pronombre, articulo.
+sintagma_nominal --> articulo.
+
+% --- Sintagma Verbal Positivo ---
+sintagma_verbal_pos --> clitico, verbo_afirmativo.
+
+% --- Sintagma Verbal Negativo ---
+sintagma_verbal_neg --> clitico, verbo_negativo.
+sintagma_verbal_neg --> negacion, clitico, verbo_afirmativo.
+
+% --- Complemento: absorbe el resto de la oracion ---
+complemento --> [].
+complemento --> [_], complemento.
