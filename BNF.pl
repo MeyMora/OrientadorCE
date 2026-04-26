@@ -22,3 +22,25 @@
 % ------------------------------------------------------------
 % :- consult('BD.pl').
 % :- consult('Logic.pl').
+
+% ============================================================
+%  LEXICO - Terminales de la gramatica
+% ============================================================
+
+% --- Saludos ---
+saludo --> [hola].
+saludo --> [buenas].
+saludo --> [hey].
+saludo --> [saludos].
+
+% --- Pronombres personales ---
+pronombre --> [yo].
+pronombre --> [mi].
+
+% --- Articulos ---
+articulo --> [el].
+articulo --> [la].
+articulo --> [los].
+articulo --> [las].
+articulo --> [un].
+articulo --> [una].
