@@ -107,20 +107,6 @@ verbo_negativo --> [puedo].
 
 % ============================================================
 %  GRAMATICA DCG - No terminales
-%
-%  BNF de los sintagmas:
-%
-%  <sintagma_nominal>   ::= <pronombre>
-%                         | <pronombre> <articulo>
-%                         | <articulo>
-%
-%  <sintagma_verbal_pos> ::= <clitico> <verbo_afirmativo>
-%
-%  <sintagma_verbal_neg> ::= <clitico> <verbo_negativo>
-%                          | <negacion> <clitico> <verbo_afirmativo>
-%
-%  <complemento>        ::= epsilon
-%                         | <palabra> <complemento>
 % ============================================================
 
 % --- Sintagma Nominal ---
@@ -138,3 +124,25 @@ sintagma_verbal_neg --> negacion, clitico, verbo_afirmativo.
 % --- Complemento: absorbe el resto de la oracion ---
 complemento --> [].
 complemento --> [_], complemento.
+
+% ============================================================
+%  REGLA RAIZ DE LA GRAMATICA
+%
+%  BNF completo de la oracion:
+%
+%  <oracion> ::= <saludo> <complemento>
+%              | <adv_afirmativo> <complemento>
+%              | <adv_negativo> <complemento>
+%              | <sintagma_nominal> <sintagma_verbal_pos> <complemento>
+%              | <sintagma_nominal> <sintagma_verbal_neg> <complemento>
+%              | <sintagma_verbal_pos> <complemento>
+%              | <sintagma_verbal_neg> <complemento>
+% ============================================================
+
+oracion(afirmativo) --> saludo,             complemento.
+oracion(afirmativo) --> adv_afirmativo,     complemento.
+oracion(negativo)   --> adv_negativo,       complemento.
+oracion(afirmativo) --> sintagma_nominal, sintagma_verbal_pos, complemento.
+oracion(negativo)   --> sintagma_nominal, sintagma_verbal_neg, complemento.
+oracion(afirmativo) --> sintagma_verbal_pos, complemento.
+oracion(negativo)   --> sintagma_verbal_neg, complemento.
