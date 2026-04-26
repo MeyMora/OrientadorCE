@@ -114,6 +114,15 @@ complemento --> [_], complemento.
 
 % ============================================================
 %  REGLA RAIZ
+%
+%  BNF completo de la oracion:
+%  <oracion> ::= <saludo> <complemento>
+%              | <adv_afirmativo> <complemento>
+%              | <adv_negativo> <complemento>
+%              | <sn> <sv_pos> <complemento>
+%              | <sn> <sv_neg> <complemento>
+%              | <sv_pos> <complemento>
+%              | <sv_neg> <complemento>
 % ============================================================
 
 oracion(afirmativo) --> saludo,             complemento.
@@ -128,12 +137,18 @@ oracion(negativo)   --> sintagma_verbal_neg, complemento.
 %  PARSER
 % ============================================================
 
+% atomizar(+Texto, -Tokens)
+% Normaliza el texto a minusculas y lo divide en atomos.
+% Elimina signos de puntuacion y tokens vacios.
 atomizar(Texto, Tokens) :-
     string_lower(Texto, Lower),
     split_string(Lower, " ,!?.;:()", " ", Partes),
     exclude([P]>>(P = ""), Partes, Limpias),
     maplist([S, A]>>(atom_string(A, S)), Limpias, Tokens).
 
+% parsear(+Texto, -Intencion)
+% Aplica la gramatica al texto y retorna:
+%   afirmativo | negativo | desconocido
 parsear(Texto, Intencion) :-
     atomizar(Texto, Tokens),
     (   once(phrase(oracion(I), Tokens))
@@ -144,12 +159,10 @@ parsear(Texto, Intencion) :-
 % ============================================================
 %  PREGUNTAS
 %
-%  Estructura: pregunta(TextoPregunta, RasgosAfirm, RasgosNeg)
+%  pregunta(TextoPregunta, RasgosAfirmativos, RasgosNegativos)
 %
-%  RasgosAfirm: atomos de BD.pl a agregar si la respuesta
-%               es afirmativa (afinidades de la carrera).
-%  RasgosNeg:   atomos de BD.pl a agregar si la respuesta
-%               es negativa (antagonias de la carrera).
+%  Los rasgos corresponden exactamente a los atomos usados
+%  en BD.pl dentro de las listas de afinidades y antagonias.
 % ============================================================
 preguntas([
     pregunta('Te gustan las matematicas y la logica?',
@@ -206,14 +219,13 @@ preguntas([
 % ============================================================
 
 % leer_entrada(-Texto)
-% Lee una linea completa desde la entrada estandar.
 leer_entrada(Texto) :-
     write('Usuario: '),
     read_line_to_string(user_input, Texto).
 
 % leer_con_reintento(-Intencion)
-% Parsea la respuesta del usuario. Si es de una sola palabra
-% o no se reconoce, pide que repita con oracion completa.
+% Rechaza respuestas de una sola palabra (si/no directo).
+% Pide repetir si la gramatica no reconoce la oracion.
 leer_con_reintento(Intencion) :-
     leer_entrada(Texto),
     atomizar(Texto, Tokens),
@@ -233,3 +245,58 @@ leer_con_reintento(Intencion) :-
         ;   Intencion = I
         )
     ).
+
+% ============================================================
+%  FLUJO DE CONVERSACION
+% ============================================================
+
+% actualizar_perfil(+RasgosAfirm, +RasgosNeg, +Intencion,
+%                   +PerfilIn, -PerfilOut)
+% Agrega los rasgos correctos al perfil segun la intencion
+% detectada por el parser.
+actualizar_perfil(RasgosAfirm, _, afirmativo, Perfil, NuevoPerfil) :-
+    append(RasgosAfirm, Perfil, NuevoPerfil).
+actualizar_perfil(_, RasgosNeg, negativo, Perfil, NuevoPerfil) :-
+    append(RasgosNeg, Perfil, NuevoPerfil).
+
+% procesar_preguntas(+Preguntas, +PerfilAcum, -PerfilFinal)
+% Recorre la lista de preguntas, parsea cada respuesta
+% y acumula el perfil del usuario.
+procesar_preguntas([], Perfil, Perfil).
+procesar_preguntas([pregunta(Q, Afirm, Neg) | Resto], Perfil0, PerfilFinal) :-
+    nl,
+    format('OrientadorCE: ~w~n', [Q]),
+    leer_con_reintento(Intencion),
+    actualizar_perfil(Afirm, Neg, Intencion, Perfil0, Perfil1),
+    procesar_preguntas(Resto, Perfil1, PerfilFinal).
+
+% ============================================================
+%  PUNTO DE ENTRADA
+% ============================================================
+
+% iniciar/0
+% Inicia la sesion del orientador vocacional.
+% TODO: cuando Logic.pl este listo:
+%   1. Descomentar los consult del inicio del archivo.
+%   2. Reemplazar el stub de recomendacion por:
+%      recomendar_carrera(Perfil, Carrera)
+iniciar :-
+    nl,
+    writeln('==================================================='),
+    writeln('  OrientadorCE - Orientador Vocacional - TEC       '),
+    writeln('==================================================='),
+    nl,
+    writeln('OrientadorCE: Hola, se que la tarea de buscar una'),
+    writeln('              carrera es dificil. Estamos aqui para'),
+    writeln('              ayudarte! Dime que te gusta.'),
+    nl,
+    leer_entrada(_),
+    nl,
+    preguntas(ListaPreguntas),
+    procesar_preguntas(ListaPreguntas, [], Perfil),
+    nl,
+    % --- STUB: reemplazar con recomendar_carrera/2 de Logic.pl ---
+    writeln('OrientadorCE: [STUB] Perfil acumulado:'),
+    format('              ~w~n', [Perfil]),
+    writeln('              (pendiente integracion con Logic.pl)'),
+    nl.
