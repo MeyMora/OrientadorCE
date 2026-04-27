@@ -28,12 +28,6 @@
 
 % ============================================================
 %  PARSER
-%
-%  atomizar/2 convierte el texto libre del usuario en una
-%  lista de atomos en minuscula, que reglas.pl puede procesar.
-%
-%  parsear/3 envuelve interpretar/2 de reglas.pl y separa
-%  la intencion del tema para uso en el flujo conversacional.
 % ============================================================
 
 % atomizar(+Texto, -Tokens)
@@ -48,7 +42,7 @@ atomizar(Texto, Tokens) :-
 % parsear(+Texto, -Intencion, -Tema)
 % Tokeniza el texto y llama a interpretar/2 de reglas.pl.
 % Intencion: afirmativo | negativo | no_entendido
-% Tema:      atomo del dominio (matematicas, tecnologia...) | desconocido
+% Tema:      atomo del dominio | desconocido
 parsear(Texto, Intencion, Tema) :-
     atomizar(Texto, Tokens),
     interpretar(Tokens, Resultado),
@@ -60,11 +54,64 @@ parsear(Texto, Intencion, Tema) :-
     ).
 
 % ============================================================
-%  PREGUNTAS
+%  NOMBRE LEGIBLE DE CARRERA
 %
-%  Lista de preguntas guia para la conversacion.
-%  Ya no se mapean a rasgos fijos porque reglas.pl extrae
-%  el tema directamente de la respuesta del usuario.
+%  Traduce el atomo interno de BD.pl al nombre que se le
+%  muestra al usuario al final de la conversacion.
+% ============================================================
+
+nombre_carrera(ingenieria_computadores, 'Ingenieria en Computadores').
+nombre_carrera(medicina,                'Medicina').
+nombre_carrera(derecho,                 'Derecho').
+nombre_carrera(arquitectura,            'Arquitectura').
+nombre_carrera(administracion_empresas, 'Administracion de Empresas').
+nombre_carrera(contabilidad,            'Contabilidad').
+nombre_carrera(psicologia,              'Psicologia').
+nombre_carrera(veterinaria,             'Veterinaria').
+nombre_carrera(turismo,                 'Turismo').
+nombre_carrera(periodismo,              'Periodismo').
+
+% ============================================================
+%  MOTOR DE RECOMENDACION
+%
+%  Algoritmo:
+%    Puntaje = (gustos del usuario en afinidades de la carrera)
+%            - (rechazos del usuario en afinidades de la carrera)
+%
+%  Si el usuario rechaza algo que es afinidad de una carrera,
+%  esa carrera pierde puntos. Se elige la de mayor puntaje.
+% ============================================================
+
+% contar_coincidencias(+ListaA, +ListaB, -Conteo)
+% Cuenta cuantos elementos de ListaA estan en ListaB.
+contar_coincidencias([], _, 0).
+contar_coincidencias([H|T], Ref, N) :-
+    (member(H, Ref) -> N1 = 1 ; N1 = 0),
+    contar_coincidencias(T, Ref, N2),
+    N is N1 + N2.
+
+% max_par(+ListaDePares, -ParMaximo)
+% Recorre lista de pares Puntaje-Carrera y retiene el mayor.
+max_par([X], X).
+max_par([P-N | T], Max) :-
+    max_par(T, P2-N2),
+    (P >= P2 -> Max = P-N ; Max = P2-N2).
+
+% recomendar_carrera(+Gustos, +Rechazos, -Carrera)
+% Puntua todas las carreras de BD.pl y retorna la mejor.
+% Gustos y Rechazos son listas de atomos del dominio.
+recomendar_carrera(Gustos, Rechazos, Carrera) :-
+    findall(Puntaje-Nombre,
+        (carrera(Nombre, Afinidades, _),
+         contar_coincidencias(Gustos, Afinidades, Pos),
+         contar_coincidencias(Rechazos, Afinidades, Neg),
+         Puntaje is Pos - Neg),
+        Pares),
+    Pares \= [],
+    max_par(Pares, _-Carrera).
+
+% ============================================================
+%  PREGUNTAS
 % ============================================================
 
 preguntas([
@@ -91,9 +138,8 @@ leer_entrada(Texto) :-
     read_line_to_string(user_input, Texto).
 
 % leer_con_reintento(-Intencion, -Tema)
-% Parsea la respuesta del usuario con reglas.pl.
-% Rechaza respuestas con tema desconocido (si/no directo).
-% Pide repetir si interpretar retorna no_entendido.
+% Rechaza si/no directo (Tema = desconocido).
+% Pide repetir si interpretar no entiende la oracion.
 leer_con_reintento(Intencion, Tema) :-
     leer_entrada(Texto),
     parsear(Texto, I, T),
@@ -114,27 +160,19 @@ leer_con_reintento(Intencion, Tema) :-
 
 % ============================================================
 %  FLUJO DE CONVERSACION
-%
-%  El perfil se construye con dos listas separadas:
-%    Gustos   -> temas con intencion afirmativa
-%    Rechazos -> temas con intencion negativa
-%
-%  Estas listas se usan luego para puntuar las carreras
-%  de la base de datos.
 % ============================================================
 
 % actualizar_perfil(+Tema, +Intencion,
 %                   +Gustos0, +Rechazos0,
 %                   -Gustos1, -Rechazos1)
-% Agrega el tema a la lista correcta segun la intencion.
+% Agrega el tema detectado a la lista correcta segun intencion.
 actualizar_perfil(Tema, afirmativo, G0, R,  [Tema|G0], R).
 actualizar_perfil(Tema, negativo,   G,  R0, G, [Tema|R0]).
 
 % procesar_preguntas(+Preguntas,
 %                    +Gustos0, +Rechazos0,
 %                    -GusFinal, -RecFinal)
-% Recorre la lista de preguntas, parsea cada respuesta
-% y acumula el perfil del usuario.
+% Recorre preguntas, parsea respuesta y acumula perfil.
 procesar_preguntas([], G, R, G, R).
 procesar_preguntas([Q|Resto], G0, R0, GF, RF) :-
     nl,
@@ -149,6 +187,7 @@ procesar_preguntas([Q|Resto], G0, R0, GF, RF) :-
 
 % iniciar/0
 % Inicia la sesion del orientador vocacional.
+% Conversacion -> perfil -> recomendacion.
 iniciar :-
     nl,
     writeln('==================================================='),
@@ -164,7 +203,10 @@ iniciar :-
     preguntas(ListaPreguntas),
     procesar_preguntas(ListaPreguntas, [], [], Gustos, Rechazos),
     nl,
-    % --- STUB: se reemplaza en proximo commit ---
-    format('OrientadorCE: [STUB] Gustos:   ~w~n', [Gustos]),
-    format('OrientadorCE: [STUB] Rechazos: ~w~n', [Rechazos]),
+    (   recomendar_carrera(Gustos, Rechazos, CarreraAtomo)
+    ->  nombre_carrera(CarreraAtomo, NombreLegible),
+        writeln('OrientadorCE: Dadas tus preferencias te recomendaria'),
+        format('              estudiar ~w.~n', [NombreLegible])
+    ;   writeln('OrientadorCE: No pude determinar una carrera con tus respuestas.')
+    ),
     nl.
